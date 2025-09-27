@@ -127,7 +127,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     const students = JSON.parse(e.target.result);
                     if (Array.isArray(students)) {
-                        chrome.runtime.sendMessage({ action: "setStore", data: { students: students } }, () => init());
+                        // **FIX**: Send a message to merge data instead of overwriting it.
+                        chrome.runtime.sendMessage({ action: "importStudents", students: students }, (response) => {
+                            if (response && response.success) {
+                                init();
+                            }
+                        });
                     }
                 } catch (error) { console.error("Error parsing JSON"); }
             };
