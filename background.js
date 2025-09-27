@@ -37,7 +37,6 @@ chrome.runtime.onInstalled.addListener(() => {
 // Main listener to handle all communication from the popup and content scripts.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     switch (request.action) {
-        // Provides the popup with all necessary data to render its state.
         case "getStore":
             chrome.storage.local.get(null, (allData) => {
                 if (chrome.runtime.lastError) {
@@ -49,7 +48,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
             break;
 
-        // Allows the popup to save any changes to the settings.
         case "setStore":
             chrome.storage.local.set(request.data, () => {
                 if (chrome.runtime.lastError) {
@@ -61,41 +59,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
             break;
 
-        // **FIX START: New case for merging imported data**
         case "importStudents":
             chrome.storage.local.get("students", (data) => {
-                if (chrome.runtime.lastError) {
-                    console.error(`Error getting students for import: ${chrome.runtime.lastError.message}`);
-                    sendResponse({ success: false, error: chrome.runtime.lastError.message });
-                    return;
-                }
-
                 const existingStudents = data.students || [];
                 const importedStudents = request.students || [];
                 const studentMap = new Map(existingStudents.map(s => [s.studentid, s]));
-
                 importedStudents.forEach(importedStudent => {
                     studentMap.set(importedStudent.studentid, importedStudent);
                 });
-
                 const mergedStudents = Array.from(studentMap.values());
-
-                chrome.storage.local.set({ students: mergedStudents }, () => {
-                    if (chrome.runtime.lastError) {
-                        console.error(`Error setting merged students: ${chrome.runtime.lastError.message}`);
-                        sendResponse({ success: false, error: chrome.runtime.lastError.message });
-                        return;
-                    }
-                    sendResponse({ success: true });
-                });
+                chrome.storage.local.set({ students: mergedStudents }, () => sendResponse({ success: true }));
             });
+            break;
+
+        // **FIX START: Added the missing deletion logic**
+        case "deleteMultipleStudents":
+            chrome.storage.local.get("students", (data) => {
+                let students = data.students || [];
+                const idsToDelete = new Set(request.studentIds);
+                students = students.filter(s => !idsToDelete.has(s.studentid));
+                chrome.storage.local.set({ students }, () => sendResponse({ success: true }));
+            });
+            break;
+
+        case "deleteAllStudents":
+            chrome.storage.local.set({ students: [] }, () => sendResponse({ success: true }));
             break;
         // **FIX END**
 
-        // ... (All other cases like handleSuccessfulLogin, deleteMultipleStudents, etc. remain the same)
     }
     return true; // Return true to indicate that the response will be sent asynchronously.
 });
-
-// ... (The addOrUpdateStudent helper function remains the same)
 
