@@ -1,0 +1,24 @@
+.enhancer-dropdown-container {
+    position: absolute;
+    border: 1px solid #d1d5db;
+    background-color: white;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.enhancer-dropdown-item {
+    padding: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.enhancer-dropdown-item:hover {
+    background-color: #f3f4f6;
+}
+
+.enhancer-dropdown-item strong {
+    color: #2563eb;
+}

@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "Attendance Enhancer",
+  "version": "3.0",
+  "description": "Calculates required attendance, allows for custom date range calculations, and provides auto-login.",
+  "permissions": [
+    "storage",
+    "session",
+    "activeTab",
+    "scripting",
+    "downloads"
+  ],
+  "host_permissions": [
+    "*://mis.aldel.lan/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://mis.aldel.lan/sjcet/view_stud_attendance.php*"],
+      "js": ["jquery-1.11.1.min.js", "content.js"]
+    },
+    {
+      "matches": [
+        "*://mis.aldel.lan/",
+        "*://mis.aldel.lan/index.php*",
+        "*://mis.aldel.lan/index2.html*"
+      ],
+      "js": ["jquery-1.11.1.min.js", "login.js", "capture-credentials.js"]
+    },
+    {
+      "matches": ["*://mis.aldel.lan/main.php*"],
+      "js": ["jquery-1.11.1.min.js", "success-checker.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Attendance Enhancer",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["student_records.json", "sun-icon.svg", "moon-icon.svg"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

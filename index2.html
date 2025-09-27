@@ -1,0 +1,230 @@
+<html><head>
+    <title>ALDEL MIS</title>
+    <link href="./images/aldel.ico" rel="shortcut icon" type="image/x-icon">
+    <link rel="stylesheet" href="css/bootstrap.min.css"> 
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="./js_files/login.js"></script>
+   <link href="css/login_css.css" rel="stylesheet" type="text/css">
+    <!-- <link href="./css_files/style_quote.css" rel="stylesheet" type="text/css" />
+    <script src="./js_files/jquery-1.7.1.min.js" type="text/javascript"></script>  -->
+<style type="text/css">
+        
+
+body {
+    background-color: #444;
+    background: url(images/mis-new.png);
+    background-repeat:no-repeat;
+    background-size: 900px 670px;
+    filter:alpha(opacity=60);
+    -ms-background-size: cover;
+  -o-background-size: cover;
+  -moz-background-size: cover;
+  background-attachment: fixed;
+background-position: center; 
+    
+}
+.form-signin input[type="text"] {
+    margin-bottom: 3px;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 0;
+}
+.form-signin input[type="password"] {
+    margin-bottom: 10px;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 0;
+}
+.form-signin .form-control {
+    position: relative;
+    font-size: 16px;
+    font-family: 'Open Sans', Arial, Helvetica, sans-serif;
+    height: auto;
+    padding: 10px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+.vertical-offset-100 {
+    padding-top: 180px;
+}
+.img-responsive {
+display: block;
+max-width: 100%;
+height: auto;
+margin: auto;
+}
+.panel {
+margin-bottom: 20px;
+background-color: rgba(255, 255, 255, 0.75);
+border: 1px solid transparent;
+border-radius: 4px;
+-webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, .05);
+box-shadow: 0 1px 1px rgba(0, 0, 0, .05);
+}
+.btn-circle {
+width: 40px;
+height: 40px;
+text-align: center;
+padding: 5px 0;
+font-size: 15px;
+line-height: 2.00;
+border-radius: 30px;
+}
+</style>
+<script type="text/javascript">
+$(document).ready(function() {
+$(document).mousemove(function(event) {
+    TweenLite.to($("body"), 
+    .5, {
+        css: {
+            backgroundPosition: "" + parseInt(event.pageX / 8) + "px " + parseInt(event.pageY / '12') + "px, " + parseInt(event.pageX / '15') + "px " + parseInt(event.pageY / '15') + "px, " + parseInt(event.pageX / '30') + "px " + parseInt(event.pageY / '30') + "px",
+            "background-position": parseInt(event.pageX / 8) + "px " + parseInt(event.pageY / 12) + "px, " + parseInt(event.pageX / 15) + "px " + parseInt(event.pageY / 15) + "px, " + parseInt(event.pageX / 30) + "px " + parseInt(event.pageY / 30) + "px"
+        }
+    })
+ })
+})
+jQuery(function($){
+       $("#sbt_butt").click(function(){
+                  var username = $("input[name=username]").val();
+                  var password = $("input[name=password]").val();
+                  if(username != '' && password != '')
+                    $('#login').submit();
+                 else{
+                     if(username == '' && password == '')
+                         alert("Please enter the username and password");
+                     else if(username == '')
+                         alert("Please enter the username");
+                     else if(password == '')
+                         alert("Please enter the password");
+                 }
+                   
+                }); 
+            
+    })
+    funtion show(){
+        
+    }
+</script>
+<script type="text/javascript">
+        window.history.forward();
+        function noBack() { 
+            window.history.forward();
+            document.myform.username.focus();
+        }
+</script>
+</head>
+<!-- <script src="http://mymaplist.com/js/vendor/TweenLite.min.js"></script>-->
+<body onload="noBack();" onpageshow="if (event.persisted) noBack();" onunload="">
+        <br><div class="container">
+            <div class="row vertical-offset-100">
+                <div class="col-md-3 col-md-offset-5" style="position: absolute;top: 40%;left: 41%;margin-top: -50px;margin-left: -50px;">
+                     <div class="panel panel-success">
+                          <!--  <div class="panel-heading " style="-webkit-border-radius: 73px 94px 99px 89px;-moz-border-radius: 73px 94px 99px 89px;border-radius: 73px 94px 99px 89px;">                                
+                        <div class="row-fluid user-row text-center">
+                            <h4>Login</h4>
+                            </div>
+                        </div>-->
+                        <div class="panel-body">
+                            <form accept-charset="UTF-8" role="form" method="post" action="index.php" class="form-signin">
+                                <fieldset>
+                                    <label class="panel-login">
+                                        <div class="login_result"></div>
+                                    </label>
+                            <div class="row">  
+                                <div style="padding-top:2px" class="col-sm-2"> <div class="btn btn-circle btn-success"> <i class="fa fa-users" aria-hidden="true"></i> </div> </div>   <div class="col-sm-8">  <input style="text-align:center;" class="form-control" name="username" placeholder="Username" autofocus="autofocus" id="username" type="text"></div></div>
+                               <div class="row">    <div style="padding-top:2px" class="col-sm-2"> <div class="btn btn-circle btn-primary"> <i class="fa fa-key" aria-hidden="true"></i></div> </div>   <div class="col-sm-8">   <input style="text-align:center;" class="form-control" name="password" placeholder="Password" id="password" type="password"></div></div>
+                                    
+                               <div class="col-md-11"><input class="btn btn-lg btn-success btn-block" type="submit" id="sbt_butt" value="Login »"></div><br><br>
+                                  <!--  <div class="row"> <div class="col-md-5">    <input style="font-size:10px" class="btn btn-lg btn-success btn-block" onclick="window.open('http://changepassword.aldel.org/','_blank');" type="button" id="sbt_butt" value="Change Password"></div>
+                                       <div class="col-md-5">   <input style="font-size:10px" class="btn btn-lg btn-success btn-block" onclick="window.open('http://changepassword.aldel.org/?action=sendtoken','_blank');" type="button" id="sbt_butt" value="Forgot Password"></div></div>
+-->
+                                </fieldset>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    
+    
+    
+    
+    <!--    <div class="row"> 
+       
+<div class="col-md-5 middlePage">
+<div class="page-header">
+    <div class="row">
+        <div class="col-sm-1">
+            <img src="images/aldel.png" width="42" height="52">  
+        </div>
+    <div class="col-sm-9 text-left">
+        <h1 width="32" height="32" class="logo" style="color: rgba(61, 114, 105, 1);">St.John  <small style="color: rgba(61, 114, 105, 1);">Welcome to our place!</small></h1>
+    </div>
+    </div>
+</div>
+
+<div class="panel">
+<div class="panel-heading" style="background: -moz-linear-gradient(top, rgba(61, 114, 105, 1) 27%, rgba(80, 149, 138, 1) 87%);color:#fff;text-align: center;">
+<h3 class="panel-title">Please Sign In</h3>
+</div>
+<div class="panel-body">
+
+<div class="row">
+
+<div class="col-md-5">
+
+<a href="http://moodle.aldel.org/"><img src="images/moodle.jpeg" alt="Smiley face" height="42" width="200"/></a><br/>
+<a href="http://byb.aldel.org/"><img src="images/byblogo.png" alt="Smiley face" height="82" width="200"/></a><br>
+<a style="text-decoration: none" href="https://sjvault.aldel.org"><span style="font-size:35px;color: #000066"><i class="fa fa-cloud"></i>  Sj Vault</span></a>
+</div>
+
+<div class="col-md-7" style="border-left:1px solid #ccc;height:160px">
+
+<form id="login" method="post" action="index.php" name="myform" class="form-horizontal"> 
+<fieldset>
+         <input id="textinput" name="username" type="text" placeholder="Enter User Name" class="form-control input-md">
+
+         <div class="spacing"> <input id="textinput" name="password" type="password" placeholder="Enter Password" class="form-control input-md"></div>
+<!--<div class="spacing"><input type="checkbox" name="checkboxes" id="checkboxes-0" value="1"><small> Remember me</small></div>
+<div class="spacing"><a href="#"><small> Forgot Password?</small></a><br/></div>
+         <br>
+<input type="button" value="Sign In" id="sbt_butt" name="singlebutton" class="btn btn-sm pull-left" />
+<a  href = "http://changepassword.aldel.org" target = "_blank"><span style="background: -moz-linear-gradient(top, rgba(61, 114, 105, 1) 27%, rgba(80, 149, 138, 1) 87%);color:#fff;" class="btn  btn-sm pull-right">Change Password</span> </a>  
+</fieldset>
+</form>
+</div>
+
+</div>
+
+</div>
+</div>
+</div>
+    </div>		
+<!-- <div id="botBody">
+                <div class="subdiv">
+                    <p class="top">&nbsp;</p>
+                    <h2 class="event">Thought For The Day</h2>
+           <div class="subdiv1">
+                  Failure is success if we learn from it.<br>-- <font style='font-style:italic;'>Malcolm Forbes<font>                      
+                    </div>
+                  
+                    <p class="bot">&nbsp;</p>
+                </div>
+                <br class="spacer" />
+            </div> 
+    <div id="tickerContainer">
+        <dl id="ticker">
+            <dt class="heading">Head News</dt>
+            <dd class="text">MIS Officially launched on 2nd January, 2012.</dd>
+            <dt class="heading">News Heading 1</dt>
+            <dd class="text">Staff and Students are requested to change your passwords.</dd>
+            <dt class="heading">News Heading 2</dt>
+            <dd class="text">All staff & students are requested to report any errors in their profile at the earliest.</dd>
+        </dl>
+    </div>-->
+
+
+
+</body></html>
