@@ -17,11 +17,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.getElementById('start_date');
     const saveDateBtn = document.getElementById('save_date_btn');
     const statusDiv = document.getElementById('status');
+    const credentialForm = document.getElementById('credential_form');
+    const managerTitle = document.getElementById('manager_title');
+    const studentIdInput = document.getElementById('student_id');
+    const studentPwdInput = document.getElementById('student_pwd');
+    const originalStudentIdInput = document.getElementById('original_student_id');
+    const saveCredentialBtn = document.getElementById('save_credential_btn');
+    const cancelEditBtn = document.getElementById('cancel_edit_btn');
     
     let allStudents = [];
     let settings = {};
 
-    // --- Theme Functions ---
+    // --- Mode Management for Add/Edit Form ---
+    function setFormMode(mode, student = {}) {
+        if (mode === 'edit') {
+            managerTitle.textContent = 'Edit User';
+            originalStudentIdInput.value = student.studentid;
+            studentIdInput.value = student.studentid;
+            studentPwdInput.value = student.studentpwd;
+            saveCredentialBtn.textContent = 'Update User';
+            cancelEditBtn.style.display = 'block';
+        } else { // 'add' mode
+            managerTitle.textContent = 'Add / Edit User';
+            credentialForm.reset();
+            originalStudentIdInput.value = '';
+            saveCredentialBtn.textContent = 'Add User';
+            cancelEditBtn.style.display = 'none';
+        }
+    }
+
+    // --- Theme & Settings ---
     function applyTheme(theme) {
         body.setAttribute('data-theme', theme);
         themeIcon.src = theme === 'dark' ? 'sun-icon.svg' : 'moon-icon.svg';
@@ -30,24 +55,23 @@ document.addEventListener('DOMContentLoaded', function() {
     themeToggleBtn.addEventListener('click', () => {
         settings.theme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         applyTheme(settings.theme);
-        chrome.runtime.sendMessage({ action: "setStore", data: { settings: settings } });
+        chrome.runtime.sendMessage({ action: "setStore", data: { settings } });
     });
 
-    // --- Feature Toggles ---
     autoLoginToggle.addEventListener('change', () => {
         settings.autoLoginEnabled = autoLoginToggle.checked;
-        chrome.runtime.sendMessage({ action: "setStore", data: { settings: settings } });
+        chrome.runtime.sendMessage({ action: "setStore", data: { settings } });
     });
     attendanceCalcToggle.addEventListener('change', () => {
         settings.attendanceCalculatorEnabled = attendanceCalcToggle.checked;
-        chrome.runtime.sendMessage({ action: "setStore", data: { settings: settings } });
+        chrome.runtime.sendMessage({ action: "setStore", data: { settings } });
     });
     saveCredentialsToggle.addEventListener('change', () => {
         settings.saveCredentialsEnabled = saveCredentialsToggle.checked;
-        chrome.runtime.sendMessage({ action: "setStore", data: { settings: settings } });
+        chrome.runtime.sendMessage({ action: "setStore", data: { settings } });
     });
 
-    // --- Data & UI Functions ---
+    // --- Data & UI Rendering ---
     function renderStudentList(filter = '') {
         studentListDiv.innerHTML = '';
         const filteredStudents = allStudents.filter(s => s.studentid.toLowerCase().includes(filter.toLowerCase()));
@@ -58,8 +82,12 @@ document.addEventListener('DOMContentLoaded', function() {
             itemDiv.innerHTML = `
                 <input type="checkbox" data-studentid="${student.studentid}">
                 <span class="student-name">${student.studentid}</span>
-                <button class="edit-btn" data-studentid="${student.studentid}">Edit</button>
+                <button class="edit-btn">Edit</button>
             `;
+            // Add listener to the edit button for this specific student
+            itemDiv.querySelector('.edit-btn').addEventListener('click', () => {
+                setFormMode('edit', student);
+            });
             studentListDiv.appendChild(itemDiv);
         });
         updateSelectAllState();
@@ -67,17 +95,31 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateSelectAllState() {
         const checkboxes = studentListDiv.querySelectorAll('input[type="checkbox"]');
-        if (checkboxes.length === 0) {
-            selectAllCheckbox.checked = false;
-            selectAllCheckbox.indeterminate = false;
-            return;
-        }
+        if (checkboxes.length === 0) { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; return; }
         const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
         selectAllCheckbox.checked = checkedCount === checkboxes.length;
         selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
     }
     
     // --- Event Listeners ---
+    credentialForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const student = {
+            studentid: studentIdInput.value.trim(),
+            studentpwd: studentPwdInput.value.trim()
+        };
+        const originalId = originalStudentIdInput.value || student.studentid;
+        
+        if (!student.studentid || !student.studentpwd) return;
+
+        chrome.runtime.sendMessage({ action: "addOrUpdateStudent", student, originalId }, () => {
+            setFormMode('add');
+            init(); // Refresh list
+        });
+    });
+    
+    cancelEditBtn.addEventListener('click', () => setFormMode('add'));
+
     saveDateBtn.addEventListener('click', () => {
         chrome.storage.local.set({ startDate: dateInput.value }, () => {
             statusDiv.textContent = 'Date Saved!';
@@ -91,11 +133,6 @@ document.addEventListener('DOMContentLoaded', function() {
         studentListDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = selectAllCheckbox.checked);
     });
     
-    studentListDiv.addEventListener('click', (e) => {
-        if (e.target.matches('input[type="checkbox"]')) updateSelectAllState();
-        if (e.target.classList.contains('edit-btn')) alert("To edit a user, please delete and re-add them using the import/export feature for now.");
-    });
-
     deleteSelectedBtn.addEventListener('click', () => {
         const selectedIds = Array.from(studentListDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.dataset.studentid);
         if (selectedIds.length > 0 && confirm(`Delete ${selectedIds.length} user(s)?`)) {
@@ -127,12 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     const students = JSON.parse(e.target.result);
                     if (Array.isArray(students)) {
-                        // **FIX**: Send a message to merge data instead of overwriting it.
-                        chrome.runtime.sendMessage({ action: "importStudents", students: students }, (response) => {
-                            if (response && response.success) {
-                                init();
-                            }
-                        });
+                        chrome.runtime.sendMessage({ action: "importStudents", students }, () => init());
                     }
                 } catch (error) { console.error("Error parsing JSON"); }
             };
@@ -146,12 +178,10 @@ document.addEventListener('DOMContentLoaded', function() {
             allStudents = store.students || [];
             settings = store.settings || {};
             
-            // Set saved date
             chrome.storage.local.get('startDate', (result) => {
                 if (result.startDate) dateInput.value = result.startDate;
             });
 
-            // Apply settings
             applyTheme(settings.theme || 'light');
             autoLoginToggle.checked = settings.autoLoginEnabled !== false;
             attendanceCalcToggle.checked = settings.attendanceCalculatorEnabled !== false;
@@ -162,3 +192,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
     init();
 });
+

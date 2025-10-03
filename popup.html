@@ -83,6 +83,25 @@
     </div>
 
     <div class="glass-container">
+        <h3 id="manager_title">Add / Edit User</h3>
+        <form id="credential_form">
+            <input type="hidden" id="original_student_id">
+            <div>
+                <label for="student_id">Username</label>
+                <input type="text" id="student_id" placeholder="Enter username" required>
+            </div>
+            <div>
+                <label for="student_pwd">Password</label>
+                <input type="password" id="student_pwd" placeholder="Enter password" required>
+            </div>
+            <div class="button-group">
+                <button type="submit" id="save_credential_btn" class="button-primary">Add User</button>
+                <button type="button" id="cancel_edit_btn" class="button-secondary" style="display: none;">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="glass-container">
         <h3>Credential Manager</h3>
         <input type="text" id="search_input" placeholder="Search users...">
         <div id="student_list"></div>
@@ -126,3 +145,4 @@
     <script src="popup.js"></script>
 </body>
 </html>
+

@@ -1,24 +1,11 @@
 // Set default settings and load initial data when the extension is installed.
 chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.get(["students", "settings"], (data) => {
-        if (chrome.runtime.lastError) {
-            console.error(`Error checking initial data: ${chrome.runtime.lastError.message}`);
-            return;
-        }
-
-        // Initialize student data from the JSON file if it doesn't already exist.
         if (!data.students) {
             fetch(chrome.runtime.getURL('student_records.json'))
                 .then(res => res.json())
-                .then(initialData => {
-                    chrome.storage.local.set({ students: initialData }, () => {
-                        if (chrome.runtime.lastError) console.error(`Error setting initial students: ${chrome.runtime.lastError.message}`);
-                    });
-                })
-                .catch(error => console.error('Failed to load initial student records:', error));
+                .then(initialData => chrome.storage.local.set({ students: initialData }));
         }
-
-        // Initialize settings with default values if they don't already exist.
         if (!data.settings) {
             chrome.storage.local.set({
                 settings: {
@@ -27,38 +14,47 @@ chrome.runtime.onInstalled.addListener(() => {
                     saveCredentialsEnabled: true,
                     theme: 'light'
                 }
-            }, () => {
-                if (chrome.runtime.lastError) console.error(`Error setting initial settings: ${chrome.runtime.lastError.message}`);
             });
         }
     });
 });
 
-// Main listener to handle all communication from the popup and content scripts.
+// Main listener to handle all communication from other scripts.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     switch (request.action) {
         case "getStore":
-            chrome.storage.local.get(null, (allData) => {
-                if (chrome.runtime.lastError) {
-                    console.error(chrome.runtime.lastError.message);
-                    sendResponse({ error: chrome.runtime.lastError.message });
-                    return;
-                }
-                sendResponse(allData);
-            });
+            chrome.storage.local.get(null, (allData) => sendResponse(allData));
             break;
 
         case "setStore":
-            chrome.storage.local.set(request.data, () => {
-                if (chrome.runtime.lastError) {
-                    console.error(chrome.runtime.lastError.message);
-                    sendResponse({ success: false, error: chrome.runtime.lastError.message });
-                    return;
-                }
-                sendResponse({ success: true });
-            });
+            chrome.storage.local.set(request.data, () => sendResponse({ success: true }));
             break;
 
+        case "addOrUpdateStudent":
+            addOrUpdateStudent(request.student, request.originalId, () => sendResponse({ success: true }));
+            break;
+
+        case "setTempCredentials":
+            if (request.credentials) {
+                chrome.storage.session.set({ tempCredentials: request.credentials }, () => {
+                    if (chrome.runtime.lastError) console.error(`Error setting temp credentials: ${chrome.runtime.lastError.message}`);
+                    sendResponse({ success: true });
+                });
+            }
+            break;
+
+        case "handleSuccessfulLogin":
+            chrome.storage.session.get('tempCredentials', (sessionData) => {
+                if (sessionData && sessionData.tempCredentials) {
+                    addOrUpdateStudent(sessionData.tempCredentials, null, () => {
+                        chrome.storage.session.remove('tempCredentials', () => sendResponse({ status: "saved" }));
+                    });
+                } else {
+                    sendResponse({ status: "no_creds" });
+                }
+            });
+            break;
+            
         case "importStudents":
             chrome.storage.local.get("students", (data) => {
                 const existingStudents = data.students || [];
@@ -72,7 +68,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
             break;
 
-        // **FIX START: Added the missing deletion logic**
         case "deleteMultipleStudents":
             chrome.storage.local.get("students", (data) => {
                 let students = data.students || [];
@@ -85,9 +80,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case "deleteAllStudents":
             chrome.storage.local.set({ students: [] }, () => sendResponse({ success: true }));
             break;
-        // **FIX END**
-
     }
-    return true; // Return true to indicate that the response will be sent asynchronously.
+    return true; // Indicates asynchronous response.
 });
+
+/**
+ * Helper function to add a new student or update an existing one.
+ */
+function addOrUpdateStudent(student, originalId, callback) {
+    chrome.storage.local.get("students", (data) => {
+        let students = data.students || [];
+        const findId = originalId || student.studentid;
+        const index = students.findIndex(s => s.studentid === findId);
+
+        if (index > -1) {
+            students[index] = student; // Update
+        } else {
+            students.push(student); // Add
+        }
+
+        chrome.storage.local.set({ students }, () => {
+            if (callback) callback();
+        });
+    });
+}
 
