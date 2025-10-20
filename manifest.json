@@ -3,13 +3,12 @@
   "name": "Attendance Enhancer",
   "version": "3.0",
   "description": "Calculates required attendance, allows for custom date range calculations, and provides auto-login.",
-  "permissions": [
-    "storage",
-    "session",
-    "activeTab",
-    "scripting",
-    "downloads"
-  ],
+    "permissions": [
+        "storage",
+        "activeTab",
+        "scripting",
+        "downloads"
+    ],
   "host_permissions": [
     "*://mis.aldel.lan/*"
   ],

@@ -37,19 +37,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case "setTempCredentials":
             if (request.credentials) {
                 chrome.storage.session.set({ tempCredentials: request.credentials }, () => {
-                    if (chrome.runtime.lastError) console.error(`Error setting temp credentials: ${chrome.runtime.lastError.message}`);
-                    sendResponse({ success: true });
+                    if (chrome.runtime.lastError) {
+                        console.error(`Attendance Enhancer: Error setting temp credentials: ${chrome.runtime.lastError.message}`);
+                        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                    } else {
+                        console.log('Attendance Enhancer: Temp credentials stored successfully.');
+                        sendResponse({ success: true });
+                    }
                 });
+            } else {
+                sendResponse({ success: false, error: 'No credentials provided' });
             }
             break;
 
         case "handleSuccessfulLogin":
             chrome.storage.session.get('tempCredentials', (sessionData) => {
-                if (sessionData && sessionData.tempCredentials) {
+                if (chrome.runtime.lastError) {
+                    console.error('Attendance Enhancer: Error retrieving temp credentials:', chrome.runtime.lastError.message);
+                    sendResponse({ status: "error", error: chrome.runtime.lastError.message });
+                } else if (sessionData && sessionData.tempCredentials) {
+                    console.log('Attendance Enhancer: Found temp credentials, saving permanently...');
                     addOrUpdateStudent(sessionData.tempCredentials, null, () => {
-                        chrome.storage.session.remove('tempCredentials', () => sendResponse({ status: "saved" }));
+                        chrome.storage.session.remove('tempCredentials', () => {
+                            console.log('Attendance Enhancer: Credentials saved and temp storage cleared.');
+                            sendResponse({ status: "saved" });
+                        });
                     });
                 } else {
+                    console.log('Attendance Enhancer: No temp credentials found in session storage.');
                     sendResponse({ status: "no_creds" });
                 }
             });
