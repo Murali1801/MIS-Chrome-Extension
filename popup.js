@@ -28,6 +28,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let allStudents = [];
     let settings = {};
 
+    function saveSettings() {
+        chrome.runtime.sendMessage({ action: "setStore", data: { settings } });
+    }
+
+    function flash(message) {
+        statusDiv.textContent = message;
+        setTimeout(() => { statusDiv.textContent = ''; }, 2000);
+    }
+
     // --- Mode Management for Add/Edit Form ---
     function setFormMode(mode, student = {}) {
         if (mode === 'edit') {
@@ -121,11 +130,9 @@ document.addEventListener('DOMContentLoaded', function() {
     cancelEditBtn.addEventListener('click', () => setFormMode('add'));
 
     saveDateBtn.addEventListener('click', () => {
-        chrome.storage.local.set({ startDate: dateInput.value }, () => {
-            statusDiv.textContent = 'Date Saved!';
-            setTimeout(() => { statusDiv.textContent = ''; }, 2000);
-        });
+        chrome.storage.local.set({ startDate: dateInput.value }, () => flash('Date Saved!'));
     });
+
 
     searchInput.addEventListener('input', () => renderStudentList(searchInput.value));
     

@@ -1,0 +1,358 @@
+/*
+ * enhancer.css
+ * Styles for everything the extension injects into the MIS attendance page.
+ * Every selector is prefixed with .ae- / #ae- so nothing here can reach the
+ * college's own markup.
+ */
+
+/*
+ * The palette lives on :root, not on #ae-root. Status pills and the at-risk row
+ * markers are injected into the college's own tables, which sit outside the
+ * dashboard; variables scoped to #ae-root would not resolve there and the
+ * colours would silently fall back to nothing.
+ */
+:root {
+    --ae-accent: #7c3aed;
+    --ae-accent-soft: #f5f3ff;
+    --ae-border: #e5e7eb;
+    --ae-text: #1f2937;
+    --ae-muted: #6b7280;
+    --ae-safe: #15803d;
+    --ae-safe-bg: #f0fdf4;
+    --ae-tight: #b45309;
+    --ae-tight-bg: #fffbeb;
+    --ae-below: #b91c1c;
+    --ae-below-bg: #fef2f2;
+    --ae-critical: #7f1d1d;
+    --ae-critical-bg: #fee2e2;
+}
+
+#ae-root {
+    max-width: 1000px;
+    margin: 18px auto;
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ae-text);
+}
+
+/* --- Cards ------------------------------------------------------------- */
+.ae-card {
+    background: #fff;
+    border: 1px solid var(--ae-border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+
+.ae-card > h4 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ae-accent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ae-card > h4 .ae-sub {
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--ae-muted);
+}
+
+.ae-collapsible > h4 { cursor: pointer; }
+.ae-collapsible > h4::after {
+    content: "\25be";
+    font-size: 11px;
+    color: var(--ae-muted);
+    margin-left: auto;
+    transition: transform .15s ease;
+}
+.ae-collapsible.ae-collapsed > h4::after { transform: rotate(-90deg); }
+.ae-collapsible.ae-collapsed .ae-body { display: none; }
+
+/* --- Headline stat tiles ---------------------------------------------- */
+.ae-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.ae-tile {
+    border: 1px solid var(--ae-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fcfcfd;
+}
+
+.ae-tile-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--ae-muted);
+    margin-bottom: 4px;
+}
+
+.ae-tile-value {
+    font-size: 22px;
+    font-weight: 650;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.ae-tile-note {
+    font-size: 11px;
+    color: var(--ae-muted);
+    margin-top: 3px;
+}
+
+.ae-tile.ae-safe     { background: var(--ae-safe-bg); }
+.ae-tile.ae-safe     .ae-tile-value { color: var(--ae-safe); }
+.ae-tile.ae-tight    { background: var(--ae-tight-bg); }
+.ae-tile.ae-tight    .ae-tile-value { color: var(--ae-tight); }
+.ae-tile.ae-below    { background: var(--ae-below-bg); }
+.ae-tile.ae-below    .ae-tile-value { color: var(--ae-below); }
+.ae-tile.ae-critical { background: var(--ae-critical-bg); }
+.ae-tile.ae-critical .ae-tile-value { color: var(--ae-critical); }
+
+/* --- Tables ----------------------------------------------------------- */
+.ae-table-wrap { overflow-x: auto; }
+
+table.ae-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin: 0;
+}
+
+table.ae-table th,
+table.ae-table td {
+    border: 1px solid var(--ae-border);
+    padding: 6px 9px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+table.ae-table th {
+    background: var(--ae-accent-soft);
+    color: #4c1d95;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+table.ae-table td:first-child,
+table.ae-table th:first-child { text-align: left; }
+
+table.ae-table tbody tr:nth-child(even) { background: #fafafa; }
+table.ae-table tfoot td { font-weight: 600; background: var(--ae-accent-soft); }
+table.ae-table td.ae-num { font-variant-numeric: tabular-nums; }
+
+th.ae-sortable { cursor: pointer; user-select: none; }
+th.ae-sortable:hover { background: #ede9fe; }
+th.ae-sortable::after { content: " \2195"; opacity: .35; font-size: 10px; }
+th.ae-sortable.ae-sort-asc::after  { content: " \2191"; opacity: 1; }
+th.ae-sortable.ae-sort-desc::after { content: " \2193"; opacity: 1; }
+
+/* --- Status pills ----------------------------------------------------- */
+.ae-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ae-pill.ae-safe     { background: var(--ae-safe-bg);     color: var(--ae-safe); }
+.ae-pill.ae-tight    { background: var(--ae-tight-bg);    color: var(--ae-tight); }
+.ae-pill.ae-below    { background: var(--ae-below-bg);    color: var(--ae-below); }
+.ae-pill.ae-critical { background: var(--ae-critical-bg); color: var(--ae-critical); }
+.ae-pill.ae-none     { background: #f3f4f6;               color: var(--ae-muted); }
+
+/* --- Inline bar for trend rows ---------------------------------------- */
+.ae-bar {
+    position: relative;
+    height: 7px;
+    min-width: 70px;
+    background: #eef2ff;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.ae-bar > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--ae-accent);
+    border-radius: 4px;
+}
+.ae-bar.ae-safe > span     { background: var(--ae-safe); }
+.ae-bar.ae-tight > span    { background: var(--ae-tight); }
+.ae-bar.ae-below > span    { background: var(--ae-below); }
+.ae-bar.ae-critical > span { background: var(--ae-critical); }
+
+/* --- Controls --------------------------------------------------------- */
+.ae-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: flex-end;
+}
+
+/*
+ * Form control rules are prefixed with #ae-root and set their properties
+ * explicitly. The MIS page ships Bootstrap, whose `label` rules (display,
+ * margin, font-weight) would otherwise win over a bare class selector and
+ * break the layout of everything injected here.
+ */
+#ae-root .ae-field { display: flex; flex-direction: column; gap: 3px; }
+
+#ae-root .ae-field > label {
+    display: block;
+    width: auto;
+    margin: 0;
+    font-size: 10.5px;
+    font-weight: 500;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--ae-muted);
+}
+
+/* Checkboxes must not pick up the text-input sizing below. */
+#ae-root .ae-field input:not([type="checkbox"]),
+#ae-root .ae-field select {
+    font: inherit;
+    padding: 6px 8px;
+    border: 1px solid var(--ae-border);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--ae-text);
+    min-width: 120px;
+    max-width: 100%;
+}
+#ae-root .ae-field input:focus,
+#ae-root .ae-field select:focus { outline: 2px solid #ddd6fe; border-color: var(--ae-accent); }
+#ae-root .ae-field input.ae-narrow { min-width: 64px; width: 74px; text-align: center; }
+
+.ae-btn {
+    font: inherit;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: 1px solid var(--ae-accent);
+    background: var(--ae-accent);
+    color: #fff;
+    cursor: pointer;
+}
+.ae-btn:hover { background: #6d28d9; }
+.ae-btn.ae-btn-ghost {
+    background: #fff;
+    color: var(--ae-accent);
+}
+.ae-btn.ae-btn-ghost:hover { background: var(--ae-accent-soft); }
+
+/* Small pill buttons: target presets, quick ranges, lecture simulation. */
+.ae-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.ae-chip {
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid #ddd6fe;
+    background: var(--ae-accent-soft);
+    color: var(--ae-accent);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.ae-chip:hover { background: #ede9fe; border-color: var(--ae-accent); }
+
+.ae-stepper { display: flex; align-items: center; gap: 4px; }
+.ae-btn.ae-step { padding: 6px 11px; font-size: 14px; line-height: 1; }
+
+/* Panel visibility checkboxes. */
+#ae-root .ae-check-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+#ae-root .ae-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--ae-text);
+    cursor: pointer;
+    user-select: none;
+}
+#ae-root .ae-check input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--ae-accent);
+    cursor: pointer;
+}
+
+.ae-pct-cell {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    justify-content: center;
+}
+
+/* --- Notes and warnings ----------------------------------------------- */
+.ae-note {
+    font-size: 11.5px;
+    color: var(--ae-muted);
+    margin-top: 10px;
+}
+.ae-warn {
+    background: var(--ae-tight-bg);
+    border: 1px solid #fde68a;
+    color: #78350f;
+    border-radius: 8px;
+    padding: 8px 11px;
+    font-size: 12px;
+    margin-top: 10px;
+}
+.ae-error {
+    background: var(--ae-below-bg);
+    border: 1px solid #fecaca;
+    color: #7f1d1d;
+    border-radius: 8px;
+    padding: 8px 11px;
+    font-size: 12px;
+}
+
+.ae-alert-list { margin: 0; padding-left: 18px; }
+.ae-alert-list li { margin-bottom: 3px; }
+
+.ae-tag-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.ae-tag {
+    background: var(--ae-accent-soft);
+    border: 1px solid #ddd6fe;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+.ae-tag.ae-prac { background: #fff7ed; border-color: #fed7aa; }
+
+/* --- Columns added to the college's own tables ------------------------ */
+td.ae-added, th.ae-added { background: #faf5ff; }
+th.ae-added { font-weight: 600; }
+td.ae-added { text-align: center; font-variant-numeric: tabular-nums; }
+tr.ae-row-below td:first-child    { box-shadow: inset 3px 0 0 var(--ae-below); }
+tr.ae-row-critical td:first-child { box-shadow: inset 3px 0 0 var(--ae-critical); }
+tr.ae-row-tight td:first-child    { box-shadow: inset 3px 0 0 var(--ae-tight); }
+
+@media print {
+    #ae-root .ae-controls, #ae-root .ae-btn { display: none; }
+    .ae-card { break-inside: avoid; box-shadow: none; }
+}

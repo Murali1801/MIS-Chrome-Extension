@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!--
+  Renders popup.html inside an iframe with the extension APIs stubbed, so the
+  popup can be exercised in an ordinary browser.
+
+      python -m http.server 8777
+      http://localhost:8777/tests/popup-harness.html
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Attendance Enhancer - popup harness</title>
+    <style>
+        body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; background: #f3f4f6; }
+        .bar { background: #4c1d95; color: #fff; padding: 10px 16px; font-size: 13px; }
+        #log { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px;
+               background: #111827; color: #d1d5db; padding: 8px 16px; white-space: pre-wrap; }
+        #log .err { color: #fca5a5; }
+        .stage { display: flex; gap: 20px; padding: 20px; align-items: flex-start; }
+        iframe { width: 412px; height: 1500px; border: 1px solid #d1d5db; border-radius: 12px;
+                 background: #fff; }
+    </style>
+</head>
+<body>
+    <div class="bar"><b>popup.html harness</b> &mdash; extension APIs stubbed</div>
+    <div id="log"></div>
+    <div class="stage"><iframe id="frame" title="popup"></iframe></div>
+
+<script>
+(function () {
+    const logBox = document.getElementById('log');
+    function log(message, cls) {
+        const line = document.createElement('div');
+        if (cls) line.className = cls;
+        line.textContent = message;
+        logBox.appendChild(line);
+    }
+    window.addEventListener('error', (e) => log('UNCAUGHT: ' + e.message, 'err'));
+
+    const STUB = `
+    <script>
+    (function () {
+        const store = {
+            students: [
+                { studentid: '2023CS001', studentpwd: 'pw1' },
+                { studentid: '2023CS002', studentpwd: 'pw2' },
+                { studentid: '2023IT017', studentpwd: 'pw3' }
+            ],
+            settings: {
+                autoLoginEnabled: true, attendanceCalculatorEnabled: true,
+                saveCredentialsEnabled: true, theme: 'light', threshold: 75,
+                showOverview: true, showBreakdown: true, showCalculator: true,
+                showPlanner: true, showRange: true, showAbsences: true, showTrends: true
+            },
+            startDate: '2025-07-01',
+            endDate: ''
+        };
+        window.__store = store;
+        window.chrome = {
+            storage: { local: {
+                get(keys, cb) {
+                    const out = {};
+                    const list = keys === null ? Object.keys(store)
+                        : (Array.isArray(keys) ? keys : [keys]);
+                    for (const k of list) if (k in store) out[k] = store[k];
+                    setTimeout(() => cb(out), 0);
+                },
+                set(data, cb) { Object.assign(store, data); if (cb) setTimeout(cb, 0); }
+            } },
+            runtime: {
+                lastError: null,
+                sendMessage(msg, cb) {
+                    if (msg.action === 'getStore') { setTimeout(() => cb && cb(store), 0); return; }
+                    if (msg.action === 'setStore') { Object.assign(store, msg.data); }
+                    setTimeout(() => cb && cb({ success: true }), 0);
+                }
+            },
+            downloads: { download() { parent.postMessage('download called', '*'); } }
+        };
+    })();
+    <\/script>`;
+
+    fetch('../popup.html')
+        .then((r) => r.text())
+        .then((html) => {
+            // Relative asset paths are resolved against this page, so lift them
+            // one directory up, then insert the stub before the first script.
+            let out = html
+                .replace(/(src|href)="(?!https?:|data:|\.\.\/)([^"]+)"/g, '$1="../$2"')
+                .replace(/<script /, STUB + '<script ');
+
+            const frame = document.getElementById('frame');
+            frame.srcdoc = out;
+            frame.addEventListener('load', () => {
+                const doc = frame.contentDocument;
+                window.__frameDoc = doc;
+
+                // The popup deliberately carries only the credential manager and
+                // the original feature switches. Target, date range and panel
+                // options live on the attendance page itself.
+                const required = ['start_date', 'save_date_btn', 'autoLoginToggle',
+                                  'attendanceCalcToggle', 'saveCredentialsToggle',
+                                  'student_list', 'search_input', 'credential_form'];
+                const shouldBeAbsent = ['threshold_input', 'end_date', 'calc_total',
+                                        'calc_attended', 'calc_pct', 'showTrendsToggle',
+                                        'showOverviewToggle'];
+
+                const missing = required.filter((id) => !doc.getElementById(id));
+                const strays = shouldBeAbsent.filter((id) => doc.getElementById(id));
+                log(missing.length ? 'MISSING: ' + missing.join(', ') : 'all popup controls present');
+                if (strays.length) log('PAGE-ONLY CONTROLS LEAKED INTO POPUP: ' + strays.join(', '), 'err');
+
+                setTimeout(() => {
+                    log('start=' + doc.getElementById('start_date').value +
+                        '  students rendered=' + doc.querySelectorAll('.student-item').length +
+                        '  sections=' +
+                        [].map.call(doc.querySelectorAll('.glass-container h3'),
+                                    (h) => h.textContent).join(' / '));
+                }, 300);
+            });
+            log('popup.html loaded into iframe');
+        })
+        .catch((e) => log('FAILED: ' + e.message, 'err'));
+})();
+</script>
+</body>
+</html>

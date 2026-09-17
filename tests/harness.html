@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!--
+  Integration harness for content.js.
+
+  Loads the real captured MIS attendance page into a container shaped like the
+  live one, stubs the two browser-extension APIs content.js relies on
+  (chrome.storage.local and the itinerary fetch), then runs the actual
+  extension scripts against it. Open it over http (not file://) so the
+  same-origin fetches work:
+
+      python -m http.server 8777
+      http://localhost:8777/tests/harness.html
+
+  Query parameters let the same page exercise different configurations:
+      ?threshold=80          attendance target
+      ?start=2025-07-01      range start
+      ?end=2025-07-31        range end
+      ?itinerary=none        simulate the itinerary being unreachable
+      ?summary=missing       simulate a page with no attendance tables
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Attendance Enhancer - integration harness</title>
+    <link rel="stylesheet" href="../enhancer.css">
+    <style>
+        body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; background: #f8f8fb; }
+        .harness-bar {
+            background: #4c1d95; color: #fff; padding: 10px 16px; font-size: 13px;
+            display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+        }
+        .harness-bar b { font-weight: 600; }
+        .harness-bar a { color: #ddd6fe; }
+        #harness-log {
+            font-family: ui-monospace, Consolas, monospace; font-size: 11.5px;
+            background: #111827; color: #d1d5db; padding: 10px 16px; white-space: pre-wrap;
+        }
+        #harness-log .err { color: #fca5a5; }
+        #harness-log .ok { color: #86efac; }
+        .page-shell { background: #fff; padding: 20px; margin: 0 auto; max-width: 1100px; }
+        .page-shell table { margin: auto; border-collapse: collapse; }
+        .page-shell th, .page-shell td { border: 1px solid #bbb; padding: 4px 10px; font-size: 13px; }
+        .page-shell label { display: block; text-align: center; margin: 10px 0; font-size: 13px; }
+    </style>
+
+    <!--
+      The real page loads Bootstrap 3, AdminLTE and tablecloth.css. These are
+      the Bootstrap rules that actually reach the injected UI; they are copied
+      here verbatim so the harness catches host-CSS bleed rather than flattering
+      the extension with a clean document.
+    -->
+    <style id="host-css-simulation">
+        label { display: inline-block; max-width: 100%; margin-bottom: 5px; font-weight: 700; }
+        input[type="checkbox"], input[type="radio"] { margin: 4px 0 0; line-height: normal; }
+        button, input, select, textarea { font-family: inherit; font-size: inherit; line-height: inherit; }
+        table { background-color: transparent; border-spacing: 0; border-collapse: collapse; }
+        th { text-align: left; }
+        h4 { font-size: 18px; margin-top: 10px; margin-bottom: 10px; font-weight: 500; }
+        ul { margin-top: 0; margin-bottom: 10px; }
+        select { text-transform: none; }
+    </style>
+</head>
+<body>
+    <div class="harness-bar">
+        <b>content.js harness</b>
+        <span id="harness-config"></span>
+        <span>
+            <a href="?">default</a> ·
+            <a href="?threshold=90">seed 90%</a> ·
+            <a href="?start=2025-07-01&amp;end=2025-07-31">seed July</a> ·
+            <a href="?itinerary=none">no itinerary</a> ·
+            <a href="?summary=missing">no tables</a>
+        </span>
+        <span style="opacity:.7">target &amp; range are set on the page itself</span>
+    </div>
+    <div id="harness-log"></div>
+
+    <div class="col-sm-9 text-left page-shell" id="page-shell">
+        <p style="text-align:center;color:#999">loading captured page&hellip;</p>
+    </div>
+
+<script>
+(function () {
+    const params = new URLSearchParams(location.search);
+    const threshold = Number(params.get('threshold')) || 75;
+    const startDate = params.get('start') || '';
+    const endDate = params.get('end') || '';
+    const itineraryMode = params.get('itinerary') || 'ok';
+    const summaryMode = params.get('summary') || 'ok';
+
+    const logBox = document.getElementById('harness-log');
+    function log(message, cls) {
+        const line = document.createElement('div');
+        if (cls) line.className = cls;
+        line.textContent = message;
+        logBox.appendChild(line);
+    }
+
+    document.getElementById('harness-config').textContent =
+        'threshold=' + threshold +
+        '  range=' + (startDate || 'start') + '→' + (endDate || 'latest') +
+        '  itinerary=' + itineraryMode + '  summary=' + summaryMode;
+
+    window.addEventListener('error', (e) => log('UNCAUGHT: ' + e.message, 'err'));
+    window.addEventListener('unhandledrejection',
+        (e) => log('UNHANDLED REJECTION: ' + (e.reason && e.reason.message || e.reason), 'err'));
+
+    // --- chrome.storage stub ---------------------------------------------
+    const store = {
+        settings: {
+            attendanceCalculatorEnabled: true,
+            autoLoginEnabled: true,
+            saveCredentialsEnabled: true,
+            theme: 'light',
+            threshold: threshold,
+            showOverview: true,
+            showBreakdown: true,
+            showCalculator: true,
+            showPlanner: true,
+            showRange: true,
+            showAbsences: true,
+            showTrends: true
+        },
+        startDate: startDate,
+        endDate: endDate
+    };
+    window.__store = store;      // so the harness can assert on what was saved
+
+    window.chrome = {
+        storage: {
+            local: {
+                get(keys, cb) {
+                    const out = {};
+                    const list = keys === null ? Object.keys(store)
+                        : (Array.isArray(keys) ? keys : [keys]);
+                    for (const key of list) if (key in store) out[key] = store[key];
+                    setTimeout(() => cb(out), 0);
+                },
+                set(data, cb) { Object.assign(store, data); if (cb) setTimeout(cb, 0); }
+            }
+        },
+        runtime: { getURL: (p) => '../' + p, lastError: null }
+    };
+
+    // --- itinerary fetch stub --------------------------------------------
+    // itenary_attendance.html is the capture that carries absence shading.
+    const realFetch = window.fetch.bind(window);
+    window.fetch = function (input, init) {
+        const url = String(input);
+        if (/itinenary_attendance_report\.php/.test(url)) {
+            if (itineraryMode === 'none') {
+                log('fetch(itinerary) -> forced 404');
+                return Promise.resolve(new Response('not found', { status: 404 }));
+            }
+            log('fetch(itinerary) -> ../itenary_attendance.html');
+            return realFetch('../itenary_attendance.html', init);
+        }
+        return realFetch(input, init);
+    };
+
+    // --- load the captured summary page, then the extension scripts ------
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const tag = document.createElement('script');
+            tag.src = src;
+            tag.onload = resolve;
+            tag.onerror = () => reject(new Error('failed to load ' + src));
+            document.head.appendChild(tag);
+        });
+    }
+
+    (async function boot() {
+        const shell = document.getElementById('page-shell');
+        try {
+            if (summaryMode === 'missing') {
+                shell.innerHTML = '<p style="text-align:center">A page with no attendance tables.</p>';
+                log('summary tables deliberately omitted');
+            } else {
+                const html = await realFetch('../attendance.html').then((r) => r.text());
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+
+                // Lift the tables and their overall-attendance labels across.
+                shell.innerHTML = '';
+                let moved = 0;
+                for (const node of Array.from(doc.body.children)) {
+                    if (node.tagName === 'TABLE' || node.tagName === 'LABEL' || node.tagName === 'BR') {
+                        shell.appendChild(document.importNode(node, true));
+                        if (node.tagName === 'TABLE') moved++;
+                    }
+                }
+                // Some captures nest the content one level deeper.
+                if (moved === 0) {
+                    for (const node of Array.from(doc.querySelectorAll('table, label'))) {
+                        shell.appendChild(document.importNode(node, true));
+                        if (node.tagName === 'TABLE') moved++;
+                    }
+                }
+                log('captured page loaded: ' + moved + ' tables', 'ok');
+            }
+
+            await loadScript('../attendance-math.js');
+            await loadScript('../attendance-parse.js');
+            log('AttendanceMath=' + typeof window.AttendanceMath +
+                '  AttendanceParse=' + typeof window.AttendanceParse);
+            await loadScript('../content.js');
+            log('content.js loaded', 'ok');
+
+            // Give the async run() a moment, then report what it produced.
+            setTimeout(() => {
+                const root = document.getElementById('ae-root');
+                if (!root) {
+                    log(summaryMode === 'missing'
+                        ? 'no #ae-root, as expected for a page with no tables'
+                        : 'NO #ae-root WAS CREATED', summaryMode === 'missing' ? 'ok' : 'err');
+                    return;
+                }
+                const cards = root.querySelectorAll('.ae-card');
+                log('rendered ' + cards.length + ' cards: ' +
+                    Array.from(cards).map((c) => c.querySelector('h4 span').textContent).join(', '),
+                    'ok');
+                log('added columns on the college tables: ' +
+                    document.querySelectorAll('th.ae-added').length + ' headers, ' +
+                    document.querySelectorAll('td.ae-added').length + ' cells', 'ok');
+                window.__harnessReady = true;
+            }, 1200);
+        } catch (error) {
+            log('BOOT FAILED: ' + error.message, 'err');
+        }
+    })();
+})();
+</script>
+</body>
+</html>

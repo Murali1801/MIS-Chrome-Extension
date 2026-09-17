@@ -2,22 +2,39 @@
 chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.get(["students", "settings"], (data) => {
         if (!data.students) {
+            // The seed file is optional; a fresh install without one should
+            // start with an empty list rather than an unhandled rejection.
             fetch(chrome.runtime.getURL('student_records.json'))
-                .then(res => res.json())
-                .then(initialData => chrome.storage.local.set({ students: initialData }));
+                .then(res => res.ok ? res.json() : [])
+                .catch(() => [])
+                .then(initialData => chrome.storage.local.set({
+                    students: Array.isArray(initialData) ? initialData : []
+                }));
         }
-        if (!data.settings) {
-            chrome.storage.local.set({
-                settings: {
-                    autoLoginEnabled: true,
-                    attendanceCalculatorEnabled: true,
-                    saveCredentialsEnabled: true,
-                    theme: 'light'
-                }
-            });
-        }
+        // Merge rather than replace, so an upgrade picks up new defaults without
+        // discarding the settings the user already chose.
+        chrome.storage.local.set({
+            settings: Object.assign({}, DEFAULT_SETTINGS, data.settings || {})
+        });
     });
 });
+
+const DEFAULT_SETTINGS = {
+    autoLoginEnabled: true,
+    attendanceCalculatorEnabled: true,
+    saveCredentialsEnabled: true,
+    theme: 'light',
+    // Attendance target, in percent. Colleges differ, and every calculation
+    // the extension shows is derived from this one number.
+    threshold: 75,
+    showOverview: true,
+    showBreakdown: true,
+    showCalculator: true,
+    showPlanner: true,
+    showRange: true,
+    showAbsences: true,
+    showTrends: true
+};
 
 // Main listener to handle all communication from other scripts.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -94,6 +111,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         case "deleteAllStudents":
             chrome.storage.local.set({ students: [] }, () => sendResponse({ success: true }));
+            break;
+
+        case "getDefaultSettings":
+            sendResponse(DEFAULT_SETTINGS);
             break;
     }
     return true; // Indicates asynchronous response.
